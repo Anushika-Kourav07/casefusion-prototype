@@ -114,7 +114,7 @@ def find_possible_mule_accounts(transaction_data):
 def calculate_risk_scores(transaction_data, shared_imeis, possible_mules):
     risk_scores = {}
 
-    # Rule 1: Money received from three or more distinct sources
+    # Rule 1: Multiple different sources send money to one account
     for mule in possible_mules:
         entity = mule["entity"]
 
@@ -126,7 +126,6 @@ def calculate_risk_scores(transaction_data, shared_imeis, possible_mules):
             ]
         }
 
-    # Rule 2: Funds routed onward within 15 minutes
     for entity in risk_scores:
         received_transactions = transaction_data[
             transaction_data["receiver_id"] == entity
@@ -136,6 +135,17 @@ def calculate_risk_scores(transaction_data, shared_imeis, possible_mules):
             transaction_data["sender_id"] == entity
         ]
 
+        total_received = received_transactions["amount"].sum()
+        total_sent = sent_transactions["amount"].sum()
+
+        # Rule 2: Large amount received
+        if total_received >= 50000:
+            risk_scores[entity]["risk_score"] += 10
+            risk_scores[entity]["reasons"].append(
+                f"Received a high total amount: INR {total_received:,.0f} (+10)"
+            )
+
+        # Rule 3: Funds moved onward rapidly
         if not received_transactions.empty and not sent_transactions.empty:
             last_received_time = received_transactions["timestamp"].max()
             first_sent_time = sent_transactions["timestamp"].min()
@@ -150,7 +160,17 @@ def calculate_risk_scores(transaction_data, shared_imeis, possible_mules):
                     f"Routed funds onward within {time_difference:.0f} minutes (+25)"
                 )
 
-    # Rule 3: Same IMEI linked to multiple caller numbers
+        # Rule 4: Most received funds moved to another account
+        if total_received > 0:
+            transfer_percentage = (total_sent / total_received) * 100
+
+            if transfer_percentage >= 90:
+                risk_scores[entity]["risk_score"] += 20
+                risk_scores[entity]["reasons"].append(
+                    f"Transferred {transfer_percentage:.0f}% of received funds onward (+20)"
+                )
+
+    # Rule 5: Shared device used by multiple phone numbers
     for device in shared_imeis:
         imei_entity = f"IMEI:{device['imei']}"
 
@@ -162,11 +182,13 @@ def calculate_risk_scores(transaction_data, shared_imeis, possible_mules):
             ]
         }
 
-    # Convert score to risk label
+    # Risk labels
     for entity in risk_scores:
         score = risk_scores[entity]["risk_score"]
 
-        if score >= 50:
+        if score >= 70:
+            risk_scores[entity]["risk_level"] = "CRITICAL"
+        elif score >= 50:
             risk_scores[entity]["risk_level"] = "HIGH"
         elif score >= 20:
             risk_scores[entity]["risk_level"] = "MEDIUM"
