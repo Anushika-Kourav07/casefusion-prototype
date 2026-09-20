@@ -1,0 +1,8 @@
+timestamp,sender_id,sender_type,receiver_id,receiver_type,amount,reference
+2026-09-20T09:10:00+05:30,VICTIM-001,upi,victim1@upi,mule_upi,25000,UPI-1001
+2026-09-20T09:17:00+05:30,VICTIM-002,upi,victim2@upi,mule_upi,18000,UPI-1002
+2026-09-20T09:25:00+05:30,VICTIM-003,upi,victim3@upi,mule_upi,22000,UPI-1003
+2026-09-20T09:33:00+05:30,victim1@upi,mule_upi,MULE-001,bank_account,24000,UPI-1004
+2026-09-20T09:39:00+05:30,victim2@upi,mule_upi,MULE-001,bank_account,17500,UPI-1005
+2026-09-20T09:47:00+05:30,victim3@upi,mule_upi,MULE-001,bank_account,21500,UPI-1006
+2026-09-20T09:52:00+05:30,MULE-001,bank_account,CASHOUT-001,bank_account,61000,NEFT-2001
